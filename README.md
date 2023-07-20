@@ -1,2 +1,2 @@
 # toolbox
-Various quick and dirty scripts for handling seqeunce data files and perfomring common metagenome analysis steps.
+Various quick and dirty scripts for handling sequence data files and performing common bioinformatics processing jobs.
