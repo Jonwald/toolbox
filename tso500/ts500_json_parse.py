@@ -69,12 +69,14 @@ def read_json(j_file):
     # create dict with chr_pos_ref_alt as key and gnomad counts + clinvar annotations as values
     af_dict = {}       
     for i in (x for x in data['positions'] if x['filters'][0] == 'PASS'):
-        chr = i['chromosome']
+        if "altAlleles" not in i.keys():
+            continue
+        chrom = i['chromosome']
         pos = i['position']
         ref = i['refAllele']
         alt = i['altAlleles'][0]
-        index = '_'.join([chr, str(pos), ref, alt])
-
+        index = '_'.join([chrom, str(pos), ref, alt])
+        
         # get af counts and calc allAF
         variant = i['variants'][0]
         gn_ac = variant.get('gnomad', {}).get('allAc', 0)
@@ -209,7 +211,7 @@ def main():
 
     for prefix, pair in file_pairs.items():
         j_file = os.path.join(datadir, [x for x in pair if x.endswith('.json')][0])
-        v_file = os.path.join(datadir, datadir, [x for x in x if pair.endswith('.tsv')][0])
+        v_file = os.path.join(datadir, datadir, [x for x in pair if x.endswith('.tsv')][0])
         print("processing: " + prefix)
 
         # make a dict with the gnomad counts + clinvar annotations using chr_pos_ref_alt as key
@@ -233,6 +235,8 @@ def main():
             ## write header to outfile
             writer.writeheader()
             print("applying logic and writing output: " + prefix + '_CombinedVariantOutputwithGermlinecall.tsv')
+            somatic_counts = 0
+            germline_counts = 0
             for row in reader:
                 if not row['Depth']:  
                     continue
@@ -240,22 +244,23 @@ def main():
                 fun_ann = row['Consequence(s)'].split(':')
                 
                 # apply logic to get classification
-                sg_call = "NA"
-                
+             
                 if is_somatic(fun_ann, af_dict, index, cons_filter, clin_ann):
                     sg_call = "Somatic"
-                    print(sg_call)
+                    somatic_counts += 1
                 else:
                     sg_call = "Germline"
-                
+                    germline_counts += 1
+                                    
                 funsig = get_funsig(af_dict, index)
                 
                 ## add new columns to row
                 row['allAF'] = af_dict[index][0]
                 row['Somatic/Germline Call'] = sg_call
                 row['Functional significance'] = funsig
-
                 ## write row to out_file
                 writer.writerow(row)
+            print("total somatic variants: " + str(somatic_counts))
+            print("total germline variants: " + str(germline_counts))
 
 main()
