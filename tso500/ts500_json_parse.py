@@ -178,13 +178,11 @@ def get_file_pairs(directory):
     # Group filenames by prefix
     prefix_dict = collections.defaultdict(list)
     for prefix, filename in zip(prefixes, filenames):
-        prefix_dict[prefix].append(filename)
+        if filename.endswith('.json') or filename.endswith('CombinedVariantOutput.tsv'):
+            prefix_dict[prefix].append(filename)
 
-    # Find all pairs of files ending with .json or CombinedVariantOutput.tsv
-    file_pairs = [pair for files in prefix_dict.values() for pair in combinations(files, 2)]
-
-    return file_pairs
-
+    return prefix_dict
+    
 
 def main():
     ## consequences / annotations to filter on   
@@ -210,10 +208,11 @@ def main():
     outdir = parser.output
     file_pairs = get_file_pairs(datadir)
 
-    for pair in file_pairs:
+    for prefix, pair in file_pairs:
         j_file = os.path.join(datadir, pair[0])
         v_file = os.path.join(datadir, pair[1])
-        
+        print("processing: " + prefix)
+
         # make a dict with the gnomad counts + clinvar annotations using chr_pos_ref_alt as key
         print("reading: " + j_file)
         af_dict = read_json(j_file)
@@ -224,7 +223,7 @@ def main():
         table_start = get_sv_start(v_file)
 
         ## set up output file
-        output_file = os.path.join(outdir, v_file.split('.')[0] + 'withGermlinecall.tsv') 
+        output_file = os.path.join(outdir, prefix + '_CombinedVariantOutputwithGermlinecall.tsv') 
         copy_first_x_lines(v_file, output_file, table_start)
 
         with open(v_file, 'r') as f, open(output_file, 'a', newline='') as out_file:
@@ -234,7 +233,7 @@ def main():
             
             ## write header to outfile
             writer.writeheader()
-            print("applying logic and writing output: " + v_file.split('.')[0] + 'withGermlinecall.tsv')
+            print("applying logic and writing output: " + prefix + '_CombinedVariantOutputwithGermlinecall.tsv')
             for row in reader:
                 if not row['Depth']:  
                     continue
