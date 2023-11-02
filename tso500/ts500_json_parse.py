@@ -191,10 +191,7 @@ def main():
     """cons_filter = ['missense_variant', 'frameshift', 'nonsense', 'stop_gained', 'start_lost']"""
     
     ## 16th oct
-    cons_filter = ['missense_variant', 'frameshift_variant','splice_acceptor_variant', 
-                            'splice_donor_variant', 'inframe_deletion', 'inframe_insertion',
-                            'synonymous_variant', 'stop_gained', 'stop_lost', 'start_lost',
-                            'upstream_gene_variant']
+    cons_filter = ['missense_variant', 'frameshift_variant', 'stop_gained', 'start_lost']
 
     ## corrected
     """cons_filter = ['missense_variant', 'frameshift_variant','splice_acceptor_variant', 
