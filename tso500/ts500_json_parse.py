@@ -48,6 +48,7 @@ def parse_command(command):
     parser = ArgumentParser(description='modify TSO500 combinedvariantoutput file to add allAF, somatic/germline call and functional significance \
                                          columns and write out to a new file.')
     parser.add_argument('-i', '--input', required=True, help='input folder path, containing "annotated json and combinedvariantoutput files')
+    parser.add_argument('-o', '--output', required=True, help='output folder path, to write the updated combinedvariantoutput files to')
 
     try:
         args = parser.parse_args(command)
@@ -167,7 +168,6 @@ def get_file_pairs(directory):
     Find all pairs of files ending with .json or CombinedVariantOutput.tsv
     """
     # Get all file names in the directory
-    directory = "/mnt/c/scratch/tso_json/"
     filenames = os.listdir(directory)
 
     # Get the prefixes (everything before the first underscore)
@@ -205,29 +205,24 @@ def main():
     ## read an input directory and find required files
     parser = parse_command(sys.argv[1:])
     datadir = parser.input
+    outdir = parser.output
     file_pairs = get_file_pairs(datadir)
 
     for pair in file_pairs:
         j_file = os.path.join(datadir, pair[0])
         v_file = os.path.join(datadir, pair[1])
-    
-        # Open the TSO500 JSON 
-        #j_file='/mnt/c/scratch/tso_json/2501003-DD39538-S2461-00028-D1_MergedVariants_Annotated.json'
-
+        
         # make a dict with the gnomad counts + clinvar annotations using chr_pos_ref_alt as key
         print("reading: " + j_file)
         af_dict = read_json(j_file)
 
         # read combined_variant_out
         print("reading: " + v_file)
-        v_file = '/mnt/c/scratch/tso_json/2501003-DD39538-S2461-00028-D1_CombinedVariantOutput.tsv'     
-        
-        # get start of small variants table
+       
         table_start = get_sv_start(v_file)
 
-        # read f as csv file starting at sv table start
-
-        output_file = os.path.join(data_dir, v_file.split('.')[0] + 'withGermlinecall.tsv') 
+        ## set up output file
+        output_file = os.path.join(outdir, v_file.split('.')[0] + 'withGermlinecall.tsv') 
         copy_first_x_lines(v_file, output_file, table_start)
 
         with open(v_file, 'r') as f, open(output_file, 'a', newline='') as out_file:
@@ -255,6 +250,7 @@ def main():
                 
                 funsig = get_funsig(af_dict, index)
                 
+                ## add new columns to row
                 row['allAF'] = af_dict[index][0]
                 row['Somatic/Germline Call'] = sg_call
                 row['Functional significance'] = funsig
