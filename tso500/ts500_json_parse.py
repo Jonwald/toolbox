@@ -171,18 +171,17 @@ def get_file_pairs(directory):
     """
     # Get all file names in the directory
     filenames = os.listdir(directory)
-
+    relevant_files = [filename for filename in filenames if filename.endswith('.json') or filename.endswith('CombinedVariantOutput.tsv')]
     # Get the prefixes (everything before the first underscore)
-    prefixes = [filename.split('_')[0] for filename in filenames if filename.endswith('.json') or filename.endswith('CombinedVariantOutput.tsv')]
+    prefixes = [filename.split('_')[0] for filename in relevant_files]
 
     # Group filenames by prefix
     prefix_dict = collections.defaultdict(list)
-    for prefix, filename in zip(prefixes, filenames):
+    for prefix, filename in zip(prefixes, relevant_files):
         if filename.endswith('.json') or filename.endswith('CombinedVariantOutput.tsv'):
             prefix_dict[prefix].append(filename)
 
     return prefix_dict
-    
 
 def main():
     ## consequences / annotations to filter on   
@@ -208,9 +207,9 @@ def main():
     outdir = parser.output
     file_pairs = get_file_pairs(datadir)
 
-    for prefix, pair in file_pairs:
-        j_file = os.path.join(datadir, pair[0])
-        v_file = os.path.join(datadir, pair[1])
+    for prefix, pair in file_pairs.items():
+        j_file = os.path.join(datadir, [x for x in pair if x.endswith('.json')][0])
+        v_file = os.path.join(datadir, datadir, [x for x in x if pair.endswith('.tsv')][0])
         print("processing: " + prefix)
 
         # make a dict with the gnomad counts + clinvar annotations using chr_pos_ref_alt as key
