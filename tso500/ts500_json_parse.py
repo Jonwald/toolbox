@@ -192,16 +192,24 @@ def main():
     """cons_filter = ['missense_variant', 'frameshift', 'nonsense', 'stop_gained', 'start_lost']"""
     
     ## 16th oct
-    cons_filter = ['missense_variant', 'frameshift_variant', 'stop_gained', 'start_lost']
+    """cons_filter = ['missense_variant', 'frameshift_variant', 'stop_gained', 'start_lost']"""
 
     ## corrected
     """cons_filter = ['missense_variant', 'frameshift_variant','splice_acceptor_variant', 
                             'splice_donor_variant', 'inframe_deletion', 'inframe_insertion',
                             'synonymous_variant', 'stop_gained', 'stop_lost', 'start_lost',
                             'upstream_gene_variant']"""
+    
+    ## 20th Nov
+    cons_filter = ['missense_variant', 'frameshift_variant', 'splice_acceptor_variant',
+                     'splice_donor_variant', 'inframe_deletion','inframe_insertion',
+                     'stop_gained', 'stop_lost', 'start_lost', '3_prime_UTR_variant',
+                     '5_prime_UTR_variant', 'upstream_gene_variant', 'downstream_gene_variant',
+                     'transcript_ablation', 'transcript_amplification', 'feature_elongation',
+                      'feature_truncation', 'protein_altering_variant']
 
     ## clinvar germline annotations
-    clin_ann = ['germline', 'inherited', 'paternal', 'maternal', 'biparental', 'uniparental']
+    clin_ann = ['inherited', 'paternal', 'maternal', 'biparental', 'uniparental']
 
     ## read an input directory and find required files
     parser = parse_command(sys.argv[1:])
@@ -229,7 +237,7 @@ def main():
 
         with open(v_file, 'r') as f, open(output_file, 'a', newline='') as out_file:
             reader = csv.DictReader(f.readlines()[table_start:], delimiter='\t')
-            outfields = reader.fieldnames + ['allAF', 'Somatic/Germline Call', 'Functional significance']
+            outfields = reader.fieldnames + ['allAF', 'Somatic/Germline Call']
             writer = csv.DictWriter(out_file, fieldnames=outfields, delimiter='\t')
             
             ## write header to outfile
@@ -252,12 +260,12 @@ def main():
                     sg_call = "Germline"
                     germline_counts += 1
                                     
-                funsig = get_funsig(af_dict, index)
+                # funsig = get_funsig(af_dict, index)
                 
                 ## add new columns to row
                 row['allAF'] = af_dict[index][0]
                 row['Somatic/Germline Call'] = sg_call
-                row['Functional significance'] = funsig
+                # row['Functional significance'] = funsig
                 ## write row to out_file
                 writer.writerow(row)
             print("total somatic variants: " + str(somatic_counts))
