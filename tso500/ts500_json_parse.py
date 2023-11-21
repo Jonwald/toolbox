@@ -6,6 +6,7 @@ import collections
 from itertools import combinations
 import json
 import csv
+import gzip
 
 """
 old headings
@@ -63,7 +64,7 @@ def read_json(j_file):
     Read the TSO500 JSON file and return a dict with the gnomad counts 
     and clinvar annotations using chr_pos_ref_alt as key
     """
-    with open(j_file, 'r') as f:
+    with gzip.open(j_file, 'rt', encoding='UTF-8') as f:
         data = json.load(f)
 
     # create dict with chr_pos_ref_alt as key and gnomad counts + clinvar annotations as values
