@@ -137,6 +137,7 @@ def get_funsig(af_dict, index):
     'Known': Cosmic count >= 20 & Combined gnomad and gnomadExome “allAf” < 0.001
     'Likely': (truncating mutation or Cosmic count >= 5 & < 20) & ( Combined gnomad and gnomadExome “allAf” < 0.001)
     'Unknown': All remaining calls
+    TODO change trunc mutation to anything ending in TER in the p dot notation
     """
     tunc_mutations = ['frameshift_variant', 'splice_acceptor_variant', 'splice_donor_variant', 'stop_gained', 'stop_lost', 'start_lost']
     
@@ -170,18 +171,19 @@ def copy_first_x_lines(input_file, output_file, x):
 
 def get_file_pairs(directory):
     """
-    Find all pairs of files ending with .json or CombinedVariantOutput.tsv
+    Find all pairs of files ending with .json.gz or CombinedVariantOutput.tsv
     """
     # Get all file names in the directory
     filenames = os.listdir(directory)
-    relevant_files = [filename for filename in filenames if filename.endswith('.json') or filename.endswith('CombinedVariantOutput.tsv')]
+    relevant_files = [filename for filename in filenames if filename.endswith('.json.gz') or filename.endswith('CombinedVariantOutput.tsv')]
     # Get the prefixes (everything before the first underscore)
     prefixes = [filename.split('_')[0] for filename in relevant_files]
+    prefixes = [prefix.replace('-D1', '') for prefix in prefixes]
 
     # Group filenames by prefix
     prefix_dict = collections.defaultdict(list)
     for prefix, filename in zip(prefixes, relevant_files):
-        if filename.endswith('.json') or filename.endswith('CombinedVariantOutput.tsv'):
+        if filename.endswith('.json.gz') or filename.endswith('CombinedVariantOutput.tsv'):
             prefix_dict[prefix].append(filename)
 
     return prefix_dict
@@ -219,8 +221,8 @@ def main():
     file_pairs = get_file_pairs(datadir)
 
     for prefix, pair in file_pairs.items():
-        j_file = os.path.join(datadir, [x for x in pair if x.endswith('.json')][0])
-        v_file = os.path.join(datadir, datadir, [x for x in pair if x.endswith('.tsv')][0])
+        j_file = os.path.join(datadir, [x for x in pair if x.endswith('.json.gz')][0])
+        v_file = os.path.join(datadir, [x for x in pair if x.endswith('.tsv')][0])
         print("processing: " + prefix)
 
         # make a dict with the gnomad counts + clinvar annotations using chr_pos_ref_alt as key
