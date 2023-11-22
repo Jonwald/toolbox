@@ -59,7 +59,24 @@ def parse_command(command):
         parser.error('Invalid options provided')
     return (args)
 
-def read_json(j_file):
+    
+def parse_tmb(tmb_file):
+    """
+    Read the TMB file and return a dict with the max cosmic counts using chr_pos_ref_alt as key
+    """
+    with open(tmb_file, 'r') as f:
+        reader = csv.DictReader(f, delimiter='\t')
+        tmb_dict = {}
+        for row in reader:
+            chrom = row['Chromosome']
+            pos = row['Position']
+            ref = row['RefCall']
+            alt = row['AltCall']
+            index = '_'.join([chrom, pos, ref, alt])
+            tmb_dict[index] = int(row['MaxCosmicCount'])
+    return tmb_dict
+    
+def read_json(j_file, tmb_dict):
     """
     Read the TSO500 JSON file and return a dict with the gnomad counts 
     and clinvar annotations using chr_pos_ref_alt as key
@@ -92,10 +109,7 @@ def read_json(j_file):
         
         # get max cosmic count
         # use lambda function to get highest sample count in list of dicts
-        try:
-            cos_count = max(variant.get('cosmic', []), key=lambda x: x['sampleCount'])['sampleCount']
-        except:
-            cos_count = 0
+        cos_count = tmb_dict[index]
               
         # get clinvar annotations if they exist
         clinvar = [item for sublist in [x['alleleOrigins'] for x in variant.get('clinvar', [])] for item in sublist] or ["NA"]
@@ -117,7 +131,7 @@ def get_sv_start(v_file):
                 break
     return table_start
 
-def is_somatic(fun_ann, af_dict, index, cons_filter, clin_ann):
+def is_somatic(fun_ann, af_dict, index, cons_filter, clin_ann, vf):
     """
     Determine if a variant is somatic based on the following criteria:
     AF < 0.01 and (cosmic count >= 20 or (AF < 0.9 and no clinvar germline annotations))
@@ -125,7 +139,7 @@ def is_somatic(fun_ann, af_dict, index, cons_filter, clin_ann):
     if any(x == y for x in fun_ann for y in cons_filter) and \
         af_dict[index][0] < 0.01 and \
             (af_dict[index][1] >= 20 or \
-                (af_dict[index][0] < 0.9 and \
+                (vf < 0.9 and \
                     not any(x == y for x in af_dict[index][2] for y in clin_ann))):
         return True
     else:
@@ -175,7 +189,7 @@ def get_file_pairs(directory):
     """
     # Get all file names in the directory
     filenames = os.listdir(directory)
-    relevant_files = [filename for filename in filenames if filename.endswith('.json.gz') or filename.endswith('CombinedVariantOutput.tsv')]
+    relevant_files = [filename for filename in filenames if filename.endswith('.json.gz') or filename.endswith('CombinedVariantOutput.tsv') or filename.endswith('TMB_Trace.tsv')]
     # Get the prefixes (everything before the first underscore)
     prefixes = [filename.split('_')[0] for filename in relevant_files]
     prefixes = [prefix.replace('-D1', '') for prefix in prefixes]
@@ -183,10 +197,11 @@ def get_file_pairs(directory):
     # Group filenames by prefix
     prefix_dict = collections.defaultdict(list)
     for prefix, filename in zip(prefixes, relevant_files):
-        if filename.endswith('.json.gz') or filename.endswith('CombinedVariantOutput.tsv'):
+        if filename.endswith('.json.gz') or filename.endswith('CombinedVariantOutput.tsv') or filename.endswith('TMB_Trace.tsv'):
             prefix_dict[prefix].append(filename)
 
     return prefix_dict
+
 
 def main():
     ## consequences / annotations to filter on   
@@ -222,13 +237,17 @@ def main():
 
     for prefix, pair in file_pairs.items():
         j_file = os.path.join(datadir, [x for x in pair if x.endswith('.json.gz')][0])
-        v_file = os.path.join(datadir, [x for x in pair if x.endswith('.tsv')][0])
+        v_file = os.path.join(datadir, [x for x in pair if x.endswith('CombinedVariantOutput.tsv')][0])
+        tmb_file = os.path.join(datadir, [x for x in pair if x.endswith('TMB_Trace.tsv')][0])
         print("processing: " + prefix)
 
-        # make a dict with the gnomad counts + clinvar annotations using chr_pos_ref_alt as key
-        print("reading: " + j_file)
-        af_dict = read_json(j_file)
+        # make a dict with the gnomad counts using chr_pos_ref_alt as key
+        print("reading: " + tmb_file)
+        tmb_dict = parse_tmb(tmb_file)
 
+        print("reading: " + j_file)
+        af_dict = read_json(j_file, tmb_dict)
+    
         # read combined_variant_out
         print("reading: " + v_file)
        
@@ -253,10 +272,12 @@ def main():
                     continue
                 index = '_'.join([row['Chromosome'], str(row['Genomic Position']), row['Reference Call'], row['Alternative Call']])
                 fun_ann = row['Consequence(s)'].split(':')
-                
+
+                ## get variant frequency 
+                vf = float(row['Allele Frequency'])
+
                 # apply logic to get classification
-             
-                if is_somatic(fun_ann, af_dict, index, cons_filter, clin_ann):
+                if is_somatic(fun_ann, af_dict, index, cons_filter, clin_ann, vf):
                     sg_call = "Somatic"
                     somatic_counts += 1
                 else:
