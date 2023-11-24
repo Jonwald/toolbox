@@ -121,7 +121,7 @@ def read_json(j_file, tmb_dict):
 
 def get_sv_start(v_file):
     """
-    Find the start of the small variants table in the combined variant output file.
+    Find the line wherethe small variants table starts in the combined variant output file.
     """
     with open(v_file, 'r') as f:
         # find line number which starts with [Small Variants]
@@ -152,6 +152,7 @@ def get_funsig(af_dict, index):
     'Likely': (truncating mutation or Cosmic count >= 5 & < 20) & ( Combined gnomad and gnomadExome “allAf” < 0.001)
     'Unknown': All remaining calls
     TODO change trunc mutation to anything ending in TER in the p dot notation
+    not to be used for now
     """
     tunc_mutations = ['frameshift_variant', 'splice_acceptor_variant', 'splice_donor_variant', 'stop_gained', 'stop_lost', 'start_lost']
     
@@ -199,6 +200,9 @@ def get_file_pairs(directory):
     for prefix, filename in zip(prefixes, relevant_files):
         if filename.endswith('.json.gz') or filename.endswith('CombinedVariantOutput.tsv') or filename.endswith('TMB_Trace.tsv'):
             prefix_dict[prefix].append(filename)
+    # convert dict entires to sets
+    for k,v in prefix_dict.items():
+        prefix_dict[k] = set(v)
 
     return prefix_dict
 
@@ -294,5 +298,6 @@ def main():
                 writer.writerow(row)
             print("total somatic variants: " + str(somatic_counts))
             print("total germline variants: " + str(germline_counts))
-
-main()
+            
+if __name__ == '__main__':
+    main()
