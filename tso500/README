@@ -1,0 +1,43 @@
+# Germline / Somatic variant classification script for project ADX22124_NOV
+
+Classifies variants in the TSO500 CombinedVariantOutput.tsv file, adds two columns: 
+allAF --gnomad allAF frequency calculated as: ((gnomad allAc + gnmoadExome AllAc) / (gnomad allAn + gnmoadExome AllAn))
+Somatic/Germline Call -- somatic or germline classification based ojn the logig described below
+
+## requirements
+
+python >= 3.5.5 
+
+## usage
+
+python ADX22124_TSO500_var_class.py -i input_folder -o output_folder
+
+input folder must contain: _MergedVariants_Annotated.json.gz, _TMB_Trace.tsv, _CombinedVariantOutput.tsv for each sample to be classified
+
+## unit tests / verification
+
+to run unit tests:
+
+python test.py
+
+## classification logic
+
+Somatic if:
+	Functional consequence annotation contains any of the following: missense_variant, frameshift_variant, splice_acceptor_variant, splice_donor_variant, inframe_deletion, inframe_insertion, stop_gained, stop_lost, start_lost, 3_prime_UTR_variant, 5_prime_UTR_variant, upstream_gene_variant, downstream_gene_variant, transcript_ablation, transcript_amplification, feature_elongation, feature_truncation, protein_altering_variant
+
+	AND  
+
+	Combined gnomad and gnomadExome “allAf” < 0.01
+
+	AND
+	[
+	    COSMIC count >= 20
+	    OR
+	    [
+	        Variant frequency<0.90 
+	        AND 
+	        None of the clinVar studies associated with the variant classify the origin of the variant as “inherited”, “paternal”, “maternal”, “biparental”, “uniparental” 
+	    ]
+	]
+Germline if:
+	None of the criteria above are met
